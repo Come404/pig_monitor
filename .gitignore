@@ -14,3 +14,12 @@ __pycache__/
 pig_tracking_results.json
 debug/
 debug2/
+
+# SSH keys for the deploy VM -- never commit these
+key.txt
+key.txt.pub
+deploy_key
+deploy_key.pub
+
+# Vite build cache
+.vite/
