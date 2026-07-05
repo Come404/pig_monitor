@@ -1,0 +1,5 @@
+opencv-python-headless==5.0.0.93
+numpy==2.5.1
+matplotlib==3.11.0
+openai==2.44.0
+rich==15.0.0

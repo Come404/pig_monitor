@@ -1,0 +1,16 @@
+# Python virtual environment
+.venv/
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
+# Claude Code local tooling config -- settings.json pins an absolute,
+# machine-specific venv path (won't resolve on another machine/clone),
+# and settings.local.json is per-user by convention.
+.claude/
+
+# Generated per-run artifacts (not source)
+pig_tracking_results.json
+debug/
+debug2/
