@@ -241,11 +241,25 @@ RECOMMENDED ACTION: one concrete, immediate action for the farm operator"""
             {"role": "user",   "content": summary}
         ],
         temperature=0.3,
-        max_tokens=600,
+        # Ultra 550B is a reasoning model -- it spends a variable, sometimes
+        # large, number of tokens on a hidden reasoning trace before emitting
+        # the actual reply. At max_tokens=600 we measured runs where the
+        # reasoning trace alone consumed the whole budget, leaving
+        # message.content = None (confirmed via raw API inspection, not
+        # guessed). 3000 gives real headroom; still cheap relative to a demo.
+        max_tokens=3000,
         stream=False
     )
 
-    return response.choices[0].message.content
+    content = response.choices[0].message.content
+    if not content:
+        finish_reason = response.choices[0].finish_reason
+        raise RuntimeError(
+            f"Ultra returned no content (finish_reason={finish_reason!r}) -- "
+            "likely ran out of tokens during its hidden reasoning trace before "
+            "producing a reply. Try raising max_tokens further."
+        )
+    return content
 
 
 # ─── 6. AFFICHAGE DU RAPPORT 4 LIGNES ────────────────────────────────────────
