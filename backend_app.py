@@ -12,7 +12,6 @@ Env vars required: CRUSOE_API_KEY (same key used by the CLI scripts).
 """
 
 import os
-import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -20,7 +19,6 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 from openai import OpenAI
 
 from pig_tracking_pipeline import run_pig_tracking, CRUSOE_BASE_URL
@@ -29,7 +27,7 @@ from pig_stress_monitor import analyze_sensors, build_summary, call_ultra
 VIDEO_PATH = os.environ.get("PIGWATCH_VIDEO", "/opt/pigwatch/pigs_top_down.mp4")
 SENSORS_PATH = os.environ.get("PIGWATCH_SENSORS", "/opt/pigwatch/sensors_sample.json")
 ENCLOSURE_ID = os.environ.get("PIGWATCH_ENCLOSURE_ID", "01")
-WEBAPP_DIST = Path(__file__).parent / "webapp_dist"
+WEBAPP_DIST = (Path(__file__).parent / "webapp_dist").resolve()
 
 app = FastAPI(title="PigWatch API")
 
@@ -167,8 +165,13 @@ if (WEBAPP_DIST / "assets").is_dir():
 
 @app.get("/{full_path:path}")
 def serve_dashboard(full_path: str):
-    candidate = WEBAPP_DIST / full_path
-    if full_path and candidate.is_file():
+    # full_path is attacker-controlled (e.g. "../../etc/passwd", or its
+    # percent-encoded form). Resolve the candidate and require it stay
+    # inside WEBAPP_DIST before ever treating it as a file to serve --
+    # anything that escapes falls through to the SPA like any other
+    # unmatched route.
+    candidate = (WEBAPP_DIST / full_path).resolve()
+    if full_path and candidate.is_relative_to(WEBAPP_DIST) and candidate.is_file():
         return FileResponse(candidate)
     return FileResponse(WEBAPP_DIST / "index.html")
 
