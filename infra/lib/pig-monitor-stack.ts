@@ -79,8 +79,8 @@ export class PigMonitorStack extends cdk.Stack {
     });
 
     const taskDefinition = new ecs.FargateTaskDefinition(this, "TaskDef", {
-      cpu: 256,
-      memoryLimitMiB: 512,
+      cpu: 512,
+      memoryLimitMiB: 2048,
       runtimePlatform: {
         cpuArchitecture: ecs.CpuArchitecture.X86_64,
         operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -145,6 +145,13 @@ export class PigMonitorStack extends cdk.Stack {
       path: "/health",
       healthyHttpCodes: "200",
     });
+
+    // /run is synchronous: video tracking + 3 model calls. The ALB's
+    // default idle timeout (60s) can 504 a slow run before it finishes.
+    service.loadBalancer.setAttribute(
+      "idle_timeout.timeout_seconds",
+      "120",
+    );
 
     database.connections.allowDefaultPortFrom(
       service.service,
