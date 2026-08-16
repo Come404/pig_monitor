@@ -5,6 +5,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as ecsPatterns from "aws-cdk-lib/aws-ecs-patterns";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 import { ECR_REPOSITORY_NAME } from "./ecr-stack";
 
@@ -33,6 +34,12 @@ export class PigMonitorStack extends cdk.Stack {
       this,
       "Repository",
       ECR_REPOSITORY_NAME,
+    );
+
+    const crusoeApiKeySecret = secretsmanager.Secret.fromSecretNameV2(
+      this,
+      "CrusoeApiKeySecret",
+      "pig-monitor/crusoe-api-key",
     );
 
     const database = new rds.DatabaseInstance(this, "Database", {
@@ -99,6 +106,7 @@ export class PigMonitorStack extends cdk.Stack {
           database.secret!,
           "password",
         ),
+        CRUSOE_API_KEY: ecs.Secret.fromSecretsManager(crusoeApiKeySecret),
       },
       healthCheck: {
         command: [
