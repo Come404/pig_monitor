@@ -1,4 +1,12 @@
 # syntax=docker/dockerfile:1
+
+FROM node:22-slim AS webapp-builder
+WORKDIR /webapp
+COPY webapp/package.json webapp/package-lock.json ./
+RUN npm ci
+COPY webapp/ ./
+RUN npm run build
+
 FROM python:3.12-slim
 
 # opencv-python-headless and numpy dynamically link these at runtime; the
@@ -16,6 +24,7 @@ RUN pip install --no-cache-dir -r requirements-server.txt
 
 COPY backend_app.py pig_tracking_pipeline.py pig_stress_monitor.py ./
 COPY pigs_top_down.mp4 sensors_sample.json ./
+COPY --from=webapp-builder /webapp/dist ./webapp_dist
 
 RUN useradd --system --create-home --uid 10001 pigwatch \
     && chown -R pigwatch:pigwatch /app

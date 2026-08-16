@@ -1,12 +1,12 @@
 """
 PigWatch backend -- thin FastAPI wrapper around the existing pipeline.
 
-Exposes the pig tracking + Nano Omni + sensor + Ultra pipeline over HTTP so a
-separate frontend (React on Cloudflare Pages) can trigger a run and fetch the
-latest report, instead of everyone SSHing in and running the CLI scripts by
-hand. All the actual logic still lives in pig_tracking_pipeline.py and
-pig_stress_monitor.py -- this file only adds an HTTP layer + response caching
-+ CORS on top of functions that already existed.
+Exposes the pig tracking + Nano Omni + sensor + Ultra pipeline over HTTP, and
+serves the built React dashboard from the same origin (see the bottom of
+this file) -- one container, one port, no separate frontend host. All the
+actual pipeline logic still lives in pig_tracking_pipeline.py and
+pig_stress_monitor.py -- this file only adds an HTTP layer + response
+caching on top of functions that already existed.
 
 Env vars required: CRUSOE_API_KEY (same key used by the CLI scripts).
 """
@@ -18,7 +18,8 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from openai import OpenAI
 
@@ -28,17 +29,9 @@ from pig_stress_monitor import analyze_sensors, build_summary, call_ultra
 VIDEO_PATH = os.environ.get("PIGWATCH_VIDEO", "/opt/pigwatch/pigs_top_down.mp4")
 SENSORS_PATH = os.environ.get("PIGWATCH_SENSORS", "/opt/pigwatch/sensors_sample.json")
 ENCLOSURE_ID = os.environ.get("PIGWATCH_ENCLOSURE_ID", "01")
+WEBAPP_DIST = Path(__file__).parent / "webapp_dist"
 
 app = FastAPI(title="PigWatch API")
-
-# Wide open for now -- tighten to the actual Cloudflare Pages origin once the
-# frontend is deployed and its URL is known.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
 
 _last_result: Optional[dict] = None
 
@@ -134,6 +127,30 @@ def report():
     if _last_result is None:
         raise HTTPException(status_code=404, detail="No run yet -- POST /run first")
     return _last_result
+
+
+# --- Static dashboard, registered last so it never shadows the API routes
+# above. Vite's build hashes JS/CSS under webapp_dist/assets/ -- serve that
+# subtree directly via StaticFiles, and fall back to index.html for
+# everything else (including a hard refresh on a client-routed path) so the
+# SPA can take over routing. Plain StaticFiles(html=True) does NOT do this:
+# it only auto-serves index.html for an exact directory match, and 404s on
+# any other unmatched path -- confirmed against the installed Starlette
+# version's staticfiles.py before writing this.
+if (WEBAPP_DIST / "assets").is_dir():
+    app.mount(
+        "/assets",
+        StaticFiles(directory=WEBAPP_DIST / "assets"),
+        name="webapp-assets",
+    )
+
+
+@app.get("/{full_path:path}")
+def serve_dashboard(full_path: str):
+    candidate = WEBAPP_DIST / full_path
+    if full_path and candidate.is_file():
+        return FileResponse(candidate)
+    return FileResponse(WEBAPP_DIST / "index.html")
 
 
 if __name__ == "__main__":
