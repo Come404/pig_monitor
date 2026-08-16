@@ -1,0 +1,16 @@
+.git
+.venv
+.claude
+webapp
+__pycache__
+*.pyc
+pig_tracking_results.json
+debug/
+debug2/
+key.txt
+key.txt.pub
+deploy_key
+deploy_key.pub
+*.md
+Dockerfile
+.dockerignore
