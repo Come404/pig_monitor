@@ -58,8 +58,9 @@ function App() {
 
       {data && (
         <p className="app-footnote">
-          Enclosure {data.enclosure_id} · last run{" "}
+          Enclosure {data.enclosure_id} · last updated{" "}
           {new Date(data.generated_at * 1000).toLocaleTimeString()}
+          {data.stale && " · showing the last successful report"}
         </p>
       )}
     </div>

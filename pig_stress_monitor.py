@@ -182,8 +182,8 @@ def render_dashboard(sensors: dict, omni_ticks: list, summary: str):
     t2.add_column("Concern possible", style="bold", width=14)
     t2.add_column("Notes",            style="dim",  width=30)
 
-    concern_colors = {"aucune": "green", "incertain": "yellow",
-                       "chaleur": "dark_orange", "froid": "cyan", "stress": "red"}
+    concern_colors = {"none": "green", "unsure": "yellow",
+                       "heat": "dark_orange", "cold": "cyan", "stress": "red"}
 
     for tk in omni_ticks:
         analysis = tk.get("nano_omni_analysis", {})

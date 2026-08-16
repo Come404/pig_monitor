@@ -34,6 +34,7 @@ WEBAPP_DIST = Path(__file__).parent / "webapp_dist"
 app = FastAPI(title="PigWatch API")
 
 _last_result: Optional[dict] = None
+_last_successful_result: Optional[dict] = None
 
 
 def parse_ultra_report(report_text: str) -> dict:
@@ -77,33 +78,52 @@ def run_pipeline() -> dict:
 
     sensors = analyze_sensors(records)
     summary = build_summary(sensors, omni_ticks, enclosure_id=ENCLOSURE_ID)
+    omni_ticks_out = [
+        {
+            "tick": tk["tick"],
+            "timestamp_s": tk["timestamp_s"],
+            "n_pigs": len(tk["pigs"]),
+            "pigs": tk["pigs"],
+            "nano_omni_analysis": tk["nano_omni_analysis"],
+        }
+        for tk in omni_ticks
+    ]
+
+    global _last_successful_result
 
     try:
-        ultra_report_text = call_ultra(summary, crusoe_key)
-        ultra_report = parse_ultra_report(ultra_report_text)
-        ultra_error = None
+        ultra_report = parse_ultra_report(call_ultra(summary, crusoe_key))
     except Exception as e:
-        ultra_report = None
-        ultra_error = str(e)
+        # Crusoe/Ultra dropped -- for the trade-show demo this should
+        # degrade invisibly, not blank the screen. Re-serve the last
+        # successful report untouched (same generated_at) instead of a
+        # fresh result with a null ultra_report; the frontend renders
+        # `stale` as a quiet note, not an error banner.
+        if _last_successful_result is not None:
+            return {**_last_successful_result, "stale": True}
+        return {
+            "generated_at": time.time(),
+            "enclosure_id": ENCLOSURE_ID,
+            "sensors": sensors,
+            "omni_ticks": omni_ticks_out,
+            "summary_sent_to_ultra": summary,
+            "ultra_report": None,
+            "ultra_error": str(e),
+            "stale": False,
+        }
 
-    return {
+    result = {
         "generated_at": time.time(),
         "enclosure_id": ENCLOSURE_ID,
         "sensors": sensors,
-        "omni_ticks": [
-            {
-                "tick": tk["tick"],
-                "timestamp_s": tk["timestamp_s"],
-                "n_pigs": len(tk["pigs"]),
-                "pigs": tk["pigs"],
-                "nano_omni_analysis": tk["nano_omni_analysis"],
-            }
-            for tk in omni_ticks
-        ],
+        "omni_ticks": omni_ticks_out,
         "summary_sent_to_ultra": summary,
         "ultra_report": ultra_report,
-        "ultra_error": ultra_error,
+        "ultra_error": None,
+        "stale": False,
     }
+    _last_successful_result = result
+    return result
 
 
 @app.get("/health")

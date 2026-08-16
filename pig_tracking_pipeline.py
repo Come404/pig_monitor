@@ -232,15 +232,16 @@ def to_base64_png(png_bytes: bytes) -> str:
 
 def analyze_with_nano_omni(client: OpenAI, image_b64: str, tick_index: int, timestamp_s: float, n_pigs: int):
     prompt = f"""
-Tu observes le plan 2D d'un enclos de porcs vu du dessus, genere a partir de
-coordonnees suivies par tracking video (tick {tick_index}, t={timestamp_s:.1f}s,
-{n_pigs} porcs detectes).
+You are looking at a top-down 2D plan of a pig enclosure, generated from
+positions tracked by video (tick {tick_index}, t={timestamp_s:.1f}s,
+{n_pigs} pigs detected).
 
-Analyse la disposition spatiale et reponds UNIQUEMENT en JSON strict:
+Analyze the spatial layout and reply with STRICT JSON ONLY. Respond in
+English -- all text fields, including clustering_notes, must be English:
 {{
   "spatial_distribution": "grouped" | "dispersed" | "highly_dispersed",
-  "clustering_notes": "breve observation en une phrase",
-  "possible_concern": "aucune" | "chaleur" | "froid" | "stress" | "incertain"
+  "clustering_notes": "one brief English sentence",
+  "possible_concern": "none" | "heat" | "cold" | "stress" | "unsure"
 }}
 """
     response = client.chat.completions.create(

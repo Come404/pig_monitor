@@ -1,8 +1,8 @@
 const CONCERN_CLASS = {
-  aucune: "concern-none",
-  incertain: "concern-unsure",
-  chaleur: "concern-heat",
-  froid: "concern-cold",
+  none: "concern-none",
+  unsure: "concern-unsure",
+  heat: "concern-heat",
+  cold: "concern-cold",
   stress: "concern-stress",
 };
 
