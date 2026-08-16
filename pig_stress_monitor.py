@@ -45,7 +45,7 @@ from pig_tracking_pipeline import run_pig_tracking, CRUSOE_BASE_URL
 
 # Ultra is served through the same Crusoe inference endpoint as Nano Omni --
 # one provider, one API key (CRUSOE_API_KEY) for both calls.
-MODEL_ULTRA = "nvidia/NVIDIA-Nemotron-3-Ultra-550B"
+MODEL_ULTRA = "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B"
 
 TIER_COLORS = {
     "NOMINAL": "green", "WATCH": "yellow",
@@ -241,7 +241,7 @@ RECOMMENDED ACTION: one concrete, immediate action for the farm operator"""
             {"role": "user",   "content": summary}
         ],
         temperature=0.3,
-        # Ultra 550B is a reasoning model -- it spends a variable, sometimes
+        # MODEL_ULTRA is a reasoning model -- it spends a variable, sometimes
         # large, number of tokens on a hidden reasoning trace before emitting
         # the actual reply. At max_tokens=600 we measured runs where the
         # reasoning trace alone consumed the whole budget, leaving
